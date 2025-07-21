@@ -1,0 +1,16 @@
+@import "../assets/fonts/fonts.css";
+
+:root {
+  --text: #111827;
+  --muted-text: #262640; /* Fixed: was ---muted-text */
+
+  --primary: #3c33e1;
+  --secondary: #574fe8;
+  --accent: #908be6;
+  --bg-light: #f9fafb;
+  --bg-secondary: #dcdcef;
+  --border: #dcdcef;
+
+  --main-font: "Montserrat", sans-serif;
+  --sub-font: "Roboto", "sans-serif";
+}
