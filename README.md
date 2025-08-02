@@ -1,17 +1,18 @@
 # Versus - Tournament Management System
 
-A modern web application for creating and managing racket sport tournaments with Google OAuth authentication.
+A modern web application for creating and managing racket sport tournaments with Google OAuth authentication, player management, and automated participant tracking.
 
 ## 🏸 About
 
-Versus is a full-stack tournament management system designed specifically for racket sports enthusiasts. Users can create, manage, and participate in tournaments for various racket sports including badminton, tennis, table tennis, and more.
+Versus is a full-stack tournament management system designed specifically for racket sports enthusiasts. Users can create, manage, and participate in tournaments for various racket sports including badminton, tennis, table tennis, and more. The system features automated participant counting, player registration, and comprehensive tournament management capabilities.
 
 ## ✨ Features
 
 ### Core Features
 
 - **Google OAuth Authentication** - Secure login using Google accounts
-- **Tournament Creation** - Create tournaments with custom details and images
+- **Tournament Creation & Management** - Create and manage tournaments with comprehensive details
+- **Player Registration System** - Add players to tournaments with contact information and seeding
 - **Multi-Sport Support** - Support for various racket sports:
   - Badminton
   - Tennis
@@ -21,9 +22,11 @@ Versus is a full-stack tournament management system designed specifically for ra
   - Pickleball
   - Padel
   - Beach Tennis
-- **Image Upload** - Upload tournament banners and photos
+- **Advanced Search & Filtering** - Filter tournaments by city, state, and sport type
+- **Image Upload** - Upload tournament banners and player profile pictures
 - **User Dashboard** - View and manage your created tournaments
 - **Session Management** - Persistent login sessions with secure cookies
+- **Automated Participant Counting** - Real-time participant count updates via database triggers
 
 ### Technical Features
 
@@ -31,6 +34,9 @@ Versus is a full-stack tournament management system designed specifically for ra
 - **Real-time Updates** - Dynamic content loading and updates
 - **File Upload Support** - Image handling with preview functionality
 - **Cross-Origin Support** - Proper CORS configuration for frontend-backend communication
+- **Database Triggers** - Automated participant count management
+- **Data Validation** - Input sanitization and validation
+- **Error Handling** - Comprehensive error handling and user feedback
 
 ## 🎯 Project Goals
 
@@ -38,6 +44,8 @@ Versus is a full-stack tournament management system designed specifically for ra
 2. **Community Building** - Connect players and tournament organizers in one platform
 3. **Modern User Experience** - Deliver a fast, responsive, and intuitive interface
 4. **Scalable Architecture** - Built with modern technologies for future expansion
+5. **Automated Management** - Reduce manual work through automated participant tracking
+6. **Player Engagement** - Facilitate easy player registration and tournament discovery
 
 ## 🚀 How It Works
 
@@ -47,15 +55,23 @@ Versus is a full-stack tournament management system designed specifically for ra
 2. **Create Tournament** - Fill out tournament details including:
    - Tournament name and description
    - Sport type selection
-   - Date and location
+   - Date and location (city, state)
+   - Prize information
    - Upload tournament banner/photo
-3. **Manage** - View and manage all your created tournaments from the dashboard
+3. **Manage Players** - Add players to your tournaments with:
+   - Player names and contact information
+   - Email addresses and phone numbers
+   - Seeding information
+   - Profile pictures
+4. **Monitor Participation** - View real-time participant counts
+5. **Manage Tournaments** - Edit, delete, and view tournament details
 
 ### For Players:
 
-1. **Browse Tournaments** - Discover tournaments in your area
-2. **View Details** - See tournament information, dates, and locations
-3. **Participate** - Join tournaments that interest you
+1. **Browse Tournaments** - Discover tournaments in your area using advanced filters
+2. **View Details** - See tournament information, dates, locations, and participant lists
+3. **Search & Filter** - Find tournaments by city, state, or specific sport
+4. **Participate** - Join tournaments that interest you
 
 ### Authentication Flow:
 
@@ -64,6 +80,14 @@ Versus is a full-stack tournament management system designed specifically for ra
 3. After approval, user is redirected back with authentication
 4. Session is established with secure cookies
 5. User can access protected routes and features
+
+### Player Registration Workflow:
+
+1. Tournament creator navigates to tournament management
+2. Uploads player data (name, email, phone, seed)
+3. System validates and stores player information
+4. Database trigger automatically updates participant count
+5. Players can view tournament details and participant lists
 
 ## 🛠️ Technology Stack
 
@@ -87,32 +111,106 @@ Versus is a full-stack tournament management system designed specifically for ra
 - **CORS** - Cross-origin resource sharing
 - **Express Session** - Session management
 
-### Database Schema
+## 🗄️ Database Schema
+
+### Users Table
 
 ```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    google_id VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    profile_pic TEXT,
-    login_method VARCHAR(50) DEFAULT 'google',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE tournament (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    description TEXT,
-    sport VARCHAR(100) NOT NULL,
-    dateOfTournament DATE NOT NULL,
-    location TEXT,
-    photo VARCHAR(255),
-    createdBy VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS public.users (
+    id integer NOT NULL DEFAULT nextval('users_id_seq'::regclass),
+    google_id character varying COLLATE pg_catalog."default" NOT NULL,
+    name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    email character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    created_at timestamp without time zone,
+    login_method character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    profile_pic character varying(500) COLLATE pg_catalog."default" NOT NULL,
+    CONSTRAINT users_pkey PRIMARY KEY (id),
+    CONSTRAINT users_google_id_key UNIQUE (google_id)
 );
 ```
+
+### Tournament Table
+
+```sql
+CREATE TABLE IF NOT EXISTS public.tournament (
+    id integer NOT NULL DEFAULT nextval('tournament_id_seq'::regclass),
+    name character varying(300) COLLATE pg_catalog."default" NOT NULL,
+    sport character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    dateoftournament date NOT NULL,
+    createdby character varying COLLATE pg_catalog."default" NOT NULL,
+    createdat timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    description character varying(500) COLLATE pg_catalog."default",
+    participants integer,
+    location character varying(500) COLLATE pg_catalog."default",
+    picture text COLLATE pg_catalog."default",
+    prize character varying(100) COLLATE pg_catalog."default",
+    city character varying(100) COLLATE pg_catalog."default",
+    state character varying(100) COLLATE pg_catalog."default",
+    banner_pic text COLLATE pg_catalog."default",
+    CONSTRAINT tournament_pkey PRIMARY KEY (id),
+    CONSTRAINT tournament_createdby_fkey FOREIGN KEY (createdby)
+        REFERENCES public.users (google_id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+```
+
+### Players Table
+
+```sql
+CREATE TABLE IF NOT EXISTS public.players (
+    id integer NOT NULL DEFAULT nextval('players_id_seq'::regclass),
+    name character varying(100) COLLATE pg_catalog."default",
+    seed integer,
+    profile_pic character varying(500) COLLATE pg_catalog."default",
+    tournament_id integer,
+    email_id character varying(100) COLLATE pg_catalog."default",
+    contact_number text COLLATE pg_catalog."default",
+    CONSTRAINT players_pkey PRIMARY KEY (id),
+    CONSTRAINT unique_tournament_entry_by_player UNIQUE (tournament_id, name),
+    CONSTRAINT players_tournament_id_fkey FOREIGN KEY (tournament_id)
+        REFERENCES public.tournament (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+```
+
+## 🔄 Database Triggers
+
+### Participant Count Update Trigger
+
+```sql
+-- Trigger: trg_update_participants
+CREATE OR REPLACE TRIGGER trg_update_participants
+    AFTER INSERT OR DELETE OR UPDATE
+    ON public.players
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_participants_count();
+```
+
+This trigger automatically updates the participant count in the tournament table whenever players are added, removed, or updated. The trigger function `update_participants_count()` ensures real-time accuracy of participant numbers.
+
+## 🔧 API Endpoints
+
+### Authentication
+
+- `GET /auth/google` - Initiate Google OAuth login
+- `GET /auth/google/callback` - OAuth callback handler
+- `GET /auth/user` - Get current user information
+- `GET /auth/logout` - Logout user
+
+### Tournaments
+
+- `GET /api/tournaments` - Get user's tournaments
+- `POST /api/tournaments` - Create new tournament
+- `GET /api/tournaments/:id` - Get specific tournament
+- `GET /api/tournaments/filter` - Filter tournaments by city/state/sport
+- `GET /api/tournaments/delete/:id` - Delete tournament
+
+### Players
+
+- `GET /api/players/tournament/:id` - Get players for a tournament
+- `POST /api/players/add/tournament/:id` - Add players to tournament
 
 ## 🏃‍♂️ Getting Started
 
@@ -163,8 +261,9 @@ CREATE TABLE tournament (
 
 5. **Database Setup**
 
-   ```bash
-   # Create database and tables using the schema above
+   ```sql
+   -- Run the complete database schema provided above
+   -- Including tables, constraints, and triggers
    ```
 
 6. **Run the Application**
@@ -197,7 +296,9 @@ lets_play_bad/
 │   ├── db/
 │   │   └── pool.js
 │   ├── routes/
-│   │   └── tournament_routes.js
+│   │   ├── playerRoutes.js
+│   │   ├── tournament_routes.js
+│   │   └── updateTournament.js
 │   ├── utils/
 │   │   └── Passport.js
 │   ├── uploads/
@@ -208,16 +309,25 @@ lets_play_bad/
 │   ├── src/
 │   │   ├── Components/
 │   │   │   ├── Login.jsx
+│   │   │   ├── Logout.jsx
+│   │   │   ├── My_tournaments_player.jsx
 │   │   │   ├── Navbar.jsx
+│   │   │   ├── Scoreboard.jsx
 │   │   │   ├── Success.jsx
-│   │   │   └── Scoreboard.jsx
+│   │   │   ├── SuccessIndicator.jsx
+│   │   │   ├── Tournament_card_for_creator.jsx
+│   │   │   └── UploadPlayers.jsx
 │   │   ├── pages/
+│   │   │   ├── Create_tournament.jsx
 │   │   │   ├── Dashboard.jsx
 │   │   │   ├── Landing_page.jsx
-│   │   │   └── Create_tournament.jsx
+│   │   │   ├── viewBrackets.jsx
+│   │   │   └── ViewTournament.jsx
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── assets/
+│   │   ├── fonts/
+│   │   └── pictures/
 │   └── package.json
 └── README.md
 ```
@@ -230,6 +340,35 @@ lets_play_bad/
 - **File Upload Validation** - Restricted file types and sizes
 - **Input Sanitization** - Protected against SQL injection
 - **Environment Variables** - Sensitive data stored securely
+- **Database Constraints** - Unique constraints and foreign key relationships
+- **Trigger-based Validation** - Automated data integrity checks
+
+## 🔄 Workflow
+
+### Tournament Creation Workflow:
+
+1. User authenticates via Google OAuth
+2. Navigates to tournament creation page
+3. Fills tournament details (name, sport, date, location, etc.)
+4. Uploads tournament banner/photo
+5. System validates input and creates tournament
+6. Tournament appears in user's dashboard
+
+### Player Registration Workflow:
+
+1. Tournament creator selects tournament for player management
+2. Uploads player data (CSV or manual entry)
+3. System validates player information
+4. Players are added to tournament with unique constraints
+5. Database trigger automatically updates participant count
+6. Tournament details reflect new participant count
+
+### Tournament Discovery Workflow:
+
+1. Users browse available tournaments
+2. Apply filters by city, state, or sport
+3. View tournament details and participant lists
+4. Access tournament information for participation
 
 ## 🤝 Contributing
 
@@ -273,14 +412,18 @@ For questions, suggestions, or support, please create an issue in the repository
 
 ## 🚧 Roadmap
 
-- [ ] Tournament bracket generation
-- [ ] Player registration system
+- [x] Tournament bracket generation
+- [x] Player registration system
+- [x] Real-time participant counting
+- [x] Advanced search and filtering
 - [ ] Real-time match scoring
 - [ ] Tournament statistics and analytics
 - [ ] Mobile app development
 - [ ] Payment integration for tournament fees
 - [ ] Notification system
-- [ ] Advanced search and filtering
+- [ ] Tournament brackets visualization
+- [ ] Match scheduling system
+- [ ] Player rankings and statistics
 
 ---
 
