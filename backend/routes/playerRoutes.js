@@ -4,23 +4,36 @@ import { pool } from "../db/pool.js";
 const app = e();
 const router = e.Router();
 
+
 //! Player Routes
 
-router.get("tournament/:id", (req, res) => {
+
+// Find Players by Tournament ID
+
+router.get("/find/tournament/:id", (req, res) => {
     const tournamentId = req.params.id;
+    console.log(tournamentId)
+
+    if (!tournamentId || tournamentId === 'undefined') {
+        return res.status(400).json({ error: "Invalid tournament ID" });
+    }
+
     pool.query(`SELECT * FROM players WHERE tournament_id = $1`, [tournamentId], (err, result) => {
         if (err) {
-            console.log("Error fetching tournament: ", err);
-            res.status(500).json({ error: "Internal server error" });
+            console.log("Error fetching players: ", err);
+            return res.status(500).json({ error: "Internal server error" });
         }
 
         if (result.rows.length === 0) {
-            res.status(404).json({ error: "Tournament not found" });
+            return res.status(200).json({ error: "No players found" });
         }
 
         res.status(200).json({ players: result.rows });
     })
 })
+
+
+// Upload Players by Tournament ID
 
 router.post('/add/tournament/:id', (req, res) => {
     const tournamentId = req.params.id;

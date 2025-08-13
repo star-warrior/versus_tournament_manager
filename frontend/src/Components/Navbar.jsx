@@ -47,7 +47,9 @@ function Navbar() {
       <nav className="flex justify-between items-center text-center w-[100%] px-10  py-3 border-b-2 border-gray-300 bg-white">
         <div className="nav-title flex gap-3">
           <img src={trophy} className="w-8" alt="" />
-          <h1 className="text-2xl font-bold">Versus.gg</h1>
+          <a href="/" className="text-2xl font-bold">
+            Versus.gg
+          </a>
         </div>
         <div className="nav-links flex align-middle gap-8">
           <a className="text-gray-600" href="/create">

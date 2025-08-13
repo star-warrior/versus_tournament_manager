@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import UploadPlayers from "../Components/UploadPlayers";
+import PlayerList from "../Components/PlayerList";
 
 function ViewTournament() {
   const { id } = useParams();
@@ -295,7 +296,7 @@ function ViewTournament() {
               </div>
             </div>
 
-            {/* Right Column - Additional Info */}
+            {/* //! Right Column - Additional Info */}
             <div className="space-y-6">
               {/* Location Details Card */}
               <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -372,6 +373,9 @@ function ViewTournament() {
                 </div>
               </div>
             </div>
+
+            {/* //! List of Players  */}
+            <PlayerList tournamentId={tournament.id} />
           </div>
         </div>
       </div>

@@ -13,6 +13,12 @@ function UploadPlayers({ tournamentId }) {
     console.log("UploadPlayers received tournamentId:", tournamentId);
   }, [tournamentId]);
 
+  const clean = (val) => {
+    return typeof val === "string"
+      ? val.trim().replace(/[\r\n\t]+/g, "") // remove newlines, tabs, extra spaces
+      : val;
+  };
+
   const expectedHeaders = ["Name", "Email", "Phone", "Seed"];
 
   const handleFileUpload = (e) => {
@@ -31,43 +37,101 @@ function UploadPlayers({ tournamentId }) {
           header: true,
           skipEmptyLines: true,
           complete: (result) => {
-            const parsedData = validateHeaders(
-              result.meta.fields,
-              expectedHeaders
-            )
-              ? result.data
-              : [];
+            const headers = result.meta.fields.map((h) =>
+              h.trim().toLowerCase()
+            );
+            const isValid = expectedHeaders.every((h) =>
+              headers.includes(h.toLowerCase())
+            );
 
-            setData(parsedData);
+            if (!isValid) {
+              alert(
+                "CSV file is missing required headers: " +
+                  expectedHeaders.join(", ")
+              );
+              setData([]);
+              return;
+            }
+
+            const normalizedData = result.data.map((row) => {
+              const rowObj = {};
+              expectedHeaders.forEach((key) => {
+                const raw = row[key];
+                if (key === "Seed") {
+                  rowObj[key] =
+                    raw !== "" && raw !== undefined ? Number(raw) : null;
+                } else {
+                  rowObj[key] = clean(raw ?? "");
+                }
+              });
+              return rowObj;
+            });
+
+            setData(normalizedData);
           },
         });
       } else if (fileExtension === "xlsx") {
-        const workbook = XLSX.read(fileContent, { type: "binary" });
+        const workbook = XLSX.read(fileContent, { type: "array" });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const jsonData = XLSX.utils.sheet_to_json(sheet);
+        const rawData = XLSX.utils.sheet_to_json(sheet, {
+          header: 1,
+          defval: null,
+        });
 
-        const parsedData = validateHeaders(
-          Object.keys(jsonData[0] || {}),
-          expectedHeaders
-        )
-          ? jsonData
-          : [];
+        if (!rawData.length) {
+          alert("Excel sheet is empty");
+          return;
+        }
 
-        setData(parsedData);
+        const headers = rawData[0].map((h) => h.trim().toLowerCase());
+        const isValid = expectedHeaders.every((h) =>
+          headers.includes(h.toLowerCase())
+        );
+
+        if (!isValid) {
+          alert(
+            "Excel file is missing required headers: " +
+              expectedHeaders.join(", ")
+          );
+          setData([]);
+          return;
+        }
+
+        const rows = rawData.slice(1);
+        const normalizedData = rows.map((row) => {
+          const rowObj = {};
+          expectedHeaders.forEach((key) => {
+            const index = headers.findIndex((h) => h === key.toLowerCase());
+            if (key === "Seed") {
+              rowObj[key] =
+                row[index] !== "" && row[index] !== undefined
+                  ? Number(row[index])
+                  : null;
+            } else {
+              rowObj[key] = row[index] ?? "";
+            }
+          });
+          return rowObj;
+        });
+
+        setData(normalizedData);
       } else {
         alert("Invalid file format. Please upload a CSV or Excel file.");
       }
     };
 
     if (fileExtension === "xlsx") {
-      reader.readAsBinaryString(file);
+      reader.readAsArrayBuffer(file);
     } else {
       reader.readAsText(file);
     }
   };
 
   const validateHeaders = (actualHeaders, expectedHeaders) => {
-    return expectedHeaders.every((header) => actualHeaders.includes(header));
+    const actualLower = actualHeaders.map((h) => h.toLowerCase());
+    return expectedHeaders.every((header) =>
+      actualLower.includes(header.toLowerCase())
+    );
   };
 
   useEffect(() => {
